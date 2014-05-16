@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+    div {
+        overflow: scroll;
+    }
+
+    .hidden {
+        visibility: hidden;
+    }
+
+    .axis {
+        font-size: 10px;
+    }
+    .axis path {
+        fill: none;
+        stroke: #000000;
+    }
+    
+    .axis .tick line {
+        stroke: #000;
+    }
+</style>
+<body>
+    <div><svg></svg></div>
+<script src="http://d3js.org/d3.v3.js"></script>
+<script>
+d3.csv('all.csv', function (data) {
+
+
+data.forEach(function (d) {
+    d.id = +d.id;
+    d.score = +d.score;
+});
+
+data = data.sort(function (a, b) {return b.score - a.score;});
+
+console.log(data);
+
+var w = 1050,
+    h = data.length * 20;
+
+var vis = d3.select('svg')
+    .attr({
+        width: w,
+        height: h
+    })
+
+var y_scale = d3.scale.ordinal()
+    .domain(d3.range(data.length))
+    .rangeBands([0, h - 100], 0.2);
+
+var x_scale = d3.scale.linear()
+    .domain([0, 70])
+    .range([0, 500]);
+
+var axis = d3.svg.axis()
+    .scale(x_scale)
+    .orient('top');
+
+vis.append('g')
+    .classed('axis', true)
+    .attr('transform', 'translate(' + [200, 60] + ')')
+    .call(axis);
+
+
+var color_scale = function (obj) {
+    if (obj.teach == 'Tim Riggins') {return '#f16913';}
+    if (obj.teach == 'Matt Saracen') {return '#41ab5d';}
+    if (obj.teach == 'Tami Taylor') {return '#4292c6';}
+    if (obj.teach == 'Erik Taylor') {return '#ef3b2c';}
+}
+
+var teach_colors = [
+    {name: 'Tim Riggins', color: '#f16913'},
+    {name: 'Matt Saracen', color: '#41ab5d'},
+    {name: 'Tami Taylor', color: '#4292c6'},
+    {name: 'Erik Taylor', color: '#ef3b2c'}
+]
+
+vis.selectAll('.box')
+    .data(teach_colors)
+    .enter()
+    .append('rect')
+        .classed('box', true)
+        .attr({
+            x: w - 275,
+            y: function (d, i) {return 60 + y_scale(i);},
+            width: 30,
+            height: y_scale.rangeBand(),
+            fill: function (d) {return d.color;},
+            opacity: 0.55
+        });
+
+vis.selectAll('.label')
+    .data(teach_colors)
+    .enter()
+    .append('text')
+        .classed('.label', true)
+        .text(function (d) {return d.name;})
+        .attr({
+            x: w - 275 + 10 + 30,
+            y: function (d, i) {return 60 + y_scale(i) + y_scale.rangeBand()/2;},
+            'alignment-baseline': 'middle',
+            'font-size': 15
+        });
+
+vis.append('text')
+    .text('TEACHER')
+    .attr({
+        x: w - 275 + 10 + 30,
+        y: 60 - 10,
+        'alignment-baseline': 'middle',
+        'font-size': 15
+    });
+
+vis.append('text')
+    .text('TOTAL POINTS SCORED')
+    .attr({
+        x: 200 + x_scale(35),
+        y: 60 - 30,
+        'text-anchor': 'middle',
+        'alignment-baseline': 'middle',
+        'font-size': 15
+    });
+
+var bars = vis.selectAll('.bar')
+    .data(data)
+    .enter()
+    .append('rect')
+    .classed('.bar', true)
+    .attr({
+        x: 200,
+        y: function (d, i) {return 60 + y_scale(i);},
+        width: function (d) {return x_scale(d.score);},
+        height: y_scale.rangeBand(),
+        fill: function (d) {return color_scale(d);},
+        opacity: 0.55
+    });
+
+var names = vis.selectAll('.name')
+    .data(data)
+    .enter()
+    .append('text')
+    .classed('name', true)
+    .text(function (d) {return d.f_name + ' ' + d.l_name;})
+    .attr({
+        x: 190,
+        y: function (d, i) {return 60 + y_scale(i) + y_scale.rangeBand()/2;},
+        'text-anchor': 'end',
+        'alignment-baseline': 'middle',
+        'font-size': 15
+    });
+
+var scores = vis.selectAll('.score')
+    .data(data)
+    .enter()
+    .append('text')
+    .classed('score', true)
+    .classed('hidden', true)
+    .text(function (d) {return String(d.score) + ' / 70' + ' (' + String(Math.round((d.score/70)*100)) + '%) - ' + d.teach + '\'s class';})
+    .attr({
+        x: function (d) {return 190 + x_scale(d.score) + 20;},
+        y: function (d, i) {return 60 + y_scale(i) + y_scale.rangeBand()/2;},
+        'alignment-baseline': 'middle',
+        'font-size': 15
+    });
+
+var show_score = function () {
+    var id = d3.select(this)[0][0].__data__.id;
+
+    console.log(id);
+
+    vis.selectAll('.score')
+        .classed('hidden', function (d) {
+            if (d.id === id) {
+                return false;
+            } else {
+                return true;
+            }
+
+        });
+
+};
+
+var remove_score = function () {
+    vis.selectAll('.score')
+        .classed('hidden', true);
+};
+
+bars.on('mouseenter', show_score);
+bars.on('mouseleave', remove_score);
+
+
+});
+</script>
